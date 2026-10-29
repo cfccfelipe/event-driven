@@ -1,0 +1,48 @@
+name: Deploy Lambda Functions
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lambda-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy ${{ matrix.function }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        function:
+          - cmtr_0oqfemca_lambda_createOrder
+          - cmtr_0oqfemca_lambda_reserveStock
+          - cmtr_0oqfemca_lambda_sendNotification
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Package Lambda
+        working-directory: lambdas
+        run: zip -r "../${{ matrix.function }}.zip" "${{ matrix.function }}"
+
+      - name: Deploy Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name "${{ matrix.function }}" \
+            --zip-file "fileb://${{ matrix.function }}.zip"
+          aws lambda wait function-updated \
+            --function-name "${{ matrix.function }}"
