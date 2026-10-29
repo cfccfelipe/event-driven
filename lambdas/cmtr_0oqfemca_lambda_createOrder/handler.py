@@ -28,4 +28,4 @@ def lambda_handler(event, context):
         "orderId": order_id,
         "status": "CREATED",
         "verification": verification
-    }# CI validation tag: validate-1793240991
+    }
